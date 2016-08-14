@@ -26,7 +26,7 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
     ChannelParser parser;
 
     private String testLink1 = "http://rss.cnn.com/rss/edition.rss";
-    private String testLink2 = "http://takiedela.ru/feed/";
+    private String testLink2 = "http://feeds.bbci.co.uk/news/rss.xml";
 
     public PresenterRssList() {
         DaggerParserComponent.builder().build().inject(this);
