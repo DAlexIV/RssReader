@@ -1,5 +1,6 @@
 package com.dalexiv.rssreader.data;
 
+import android.os.Parcelable;
 import android.support.annotation.Nullable;
 
 import com.google.auto.value.AutoValue;
@@ -8,7 +9,7 @@ import com.google.auto.value.AutoValue;
  * Created by dalexiv on 8/14/16.
  */
 @AutoValue
-public abstract class RssData {
+public abstract class RssData implements Parcelable {
     public static RssData create(String title, String link, String description, String imageLink) {
         return new AutoValue_RssData(title, link, description, imageLink);
     }

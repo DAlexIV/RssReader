@@ -26,20 +26,22 @@ import java.util.List;
 import javax.inject.Inject;
 
 import butterknife.BindView;
+import icepick.Icepick;
+import icepick.State;
 
 /**
  * Created by dalexiv on 8/13/16.
  */
 
 public class FragmentRssList extends BaseFragment implements RssListView {
-    @BindView(R.id.rssRecycler)
-    RecyclerView recyclerView;
-    @BindView(R.id.coordinator)
-    CoordinatorLayout coordinatorLayout;
-    @BindView(R.id.progressBar)
-    ProgressBar progressBar;
+    @BindView(R.id.rssRecycler) RecyclerView recyclerView;
+    @BindView(R.id.coordinator) CoordinatorLayout coordinatorLayout;
+    @BindView(R.id.progressBar) ProgressBar progressBar;
+    @BindView(R.id.fab) FloatingActionButton fab;
     RssListAdapter adapter;
 
+    @State
+    int firstRecyclerViewVisibleItem;
 
     @Inject
     PresenterRssList presenterRssList;
@@ -59,21 +61,48 @@ public class FragmentRssList extends BaseFragment implements RssListView {
         super.onViewCreated(view, savedInstanceState);
         FragmentInjectors.inject(this);
 
-        initFab(view);
+        fab.setOnClickListener(fab -> presenterRssList.handleFabClick());
         setupRecycler();
         presenterRssList.bindView(this);
     }
 
-    private void initFab(View view) {
-        FloatingActionButton fab = (FloatingActionButton) view.findViewById(R.id.fab);
-        fab.setOnClickListener(view1 -> presenterRssList.handleFabClick());
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        Icepick.restoreInstanceState(this, savedInstanceState);
+
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        firstRecyclerViewVisibleItem =
+                ((LinearLayoutManager) recyclerView.getLayoutManager())
+                        .findFirstCompletelyVisibleItemPosition();
+        Icepick.saveInstanceState(this, outState);
     }
 
     private void setupRecycler() {
-        adapter = new RssListAdapter(new ArrayList<>(), getActivity().getApplicationContext());
+        adapter = new RssListAdapter(new ArrayList<>(), getActivity().getApplicationContext(),
+                rssViewItem -> presenterRssList.handleRecyclerClick(rssViewItem));
         LinearLayoutManager manager = new LinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(manager);
         recyclerView.setAdapter(adapter);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0)
+                    fab.hide();
+                else if (dy < 0)
+                    fab.show();
+            }
+        });
+
+        // Restore old position
+        recyclerView.getLayoutManager()
+                .scrollToPosition(firstRecyclerViewVisibleItem);
     }
 
     @Override

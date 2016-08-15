@@ -8,9 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
 import com.dalexiv.rssreader.R;
-import com.dalexiv.rssreader.data.RssItem;
 import com.dalexiv.rssreader.domain.RssViewItem;
 
 import java.text.SimpleDateFormat;
@@ -20,6 +18,8 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
+import static com.dalexiv.rssreader.presentation.ui.ImageUtils.loadRssItemImage;
+
 /**
  * Created by dalexiv on 8/14/16.
  */
@@ -27,37 +27,44 @@ import butterknife.ButterKnife;
 public class RssListAdapter extends RecyclerView.Adapter<RssListAdapter.RssItemViewHolder> {
     private List<RssViewItem> data;
     private Context context;
+    private IRssItemClicked iRssItemClicked;
     private SimpleDateFormat formatter;
 
-    public RssListAdapter(List<RssViewItem> data, Context context) {
+    public RssListAdapter(List<RssViewItem> data, Context context, IRssItemClicked iRssItemClicked) {
         this.data = data;
         this.context = context;
+        this.iRssItemClicked = iRssItemClicked;
         formatter = new SimpleDateFormat("d MMMM HH:mm");
+        setHasStableIds(true);
     }
 
     @Override
     public RssListAdapter.RssItemViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         final View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_rss, parent, false);
-        return new RssItemViewHolder(view);
+        final RssItemViewHolder rssItemViewHolder = new RssItemViewHolder(view);
+        rssItemViewHolder.itemView.setOnClickListener(view1
+                -> iRssItemClicked.onClick(data.get(rssItemViewHolder.getAdapterPosition())));
+        return rssItemViewHolder;
     }
 
     @Override
     public void onBindViewHolder(RssItemViewHolder holder, int position) {
-        final RssItem rssItem = data.get(position).rssItem();
-        holder.textViewTime.setText(formatter.format(new Date(rssItem.getTimestamp())));
-        holder.textViewTitle.setText(rssItem.getRssData().getTitle());
-
-        final String smallImageLink = rssItem.getRssData().getImageLink();
-        final String channelImageLink = data.get(position).channelImageLink();
-        Glide.with(context)
-                .load(smallImageLink == null ? channelImageLink : smallImageLink)
-                .into(holder.imageView);
+        final RssViewItem rssViewItem = data.get(position);
+        holder.textViewTime.setText(formatter.format(
+                new Date(rssViewItem.rssItem().getTimestamp())));
+        holder.textViewTitle.setText(rssViewItem.rssItem().getRssData().getTitle());
+        loadRssItemImage(context, holder.imageView, rssViewItem);
     }
 
     @Override
     public int getItemCount() {
         return data.size();
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return data.get(position).rssItem().getTimestamp();
     }
 
     public void addItems(List<RssViewItem> items) {

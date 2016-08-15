@@ -132,9 +132,17 @@ public class ChannelParserImpl implements ChannelParser {
 
             switch (qName) {
                 case ITEM:
+                    // Handling various image cases
+                    if ((currentImageLink == null
+                            || currentImageLink.equals(headerRssData.getImageLink())
+                            && currentFullImageLink != null))
+                        currentImageLink = currentFullImageLink;
+
                     final RssData rssData = RssData.create(currentTitle, currentLink,
                             currentDescription, currentImageLink);
                     rssItems.add(RssItem.create(rssData, currentFullImageLink, currentPubDate));
+                    currentFullImageLink = null;
+                    currentImageLink = null;
                     break;
                 default:
                     status = NO_PARSING;

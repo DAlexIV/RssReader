@@ -9,6 +9,7 @@ import com.dalexiv.rssreader.domain.RssViewItem;
 import com.dalexiv.rssreader.domain.interactors.GetChannelsByUrlsUseCase;
 import com.dalexiv.rssreader.domain.parsers.ChannelParser;
 import com.dalexiv.rssreader.presentation.di.DaggerParserComponent;
+import com.dalexiv.rssreader.presentation.ui.activities.ActivityDetailedRssItem;
 import com.dalexiv.rssreader.presentation.ui.fragments.DialogNewRssLink;
 import com.dalexiv.rssreader.presentation.ui.fragments.FragmentRssList;
 
@@ -73,6 +74,11 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
         DialogNewRssLink dialog = DialogNewRssLink.newInstance();
         dialog.setTargetFragment(view(), REQUEST_LINK);
         dialog.show(view().getFragmentManager(), dialog.getClass().getSimpleName());
+    }
+
+    public void handleRecyclerClick(RssViewItem rssViewItem) {
+        final Intent intent = ActivityDetailedRssItem.makeIntent(view().getContext(), rssViewItem);
+        view().getActivity().startActivity(intent);
     }
 
     public void onFragmentResult(int requestCode, int resultCode, Intent data) {
