@@ -38,7 +38,7 @@ public class RssListAdapter extends RecyclerView.Adapter<RssListAdapter.RssItemV
     @Override
     public RssListAdapter.RssItemViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         final View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.rss_item, parent, false);
+                .inflate(R.layout.item_rss, parent, false);
         return new RssItemViewHolder(view);
     }
 
@@ -61,9 +61,8 @@ public class RssListAdapter extends RecyclerView.Adapter<RssListAdapter.RssItemV
     }
 
     public void addItems(List<RssViewItem> items) {
-        int oldSize = getItemCount();
-        data.addAll(items);
-        notifyItemRangeInserted(oldSize, getItemCount());
+        data = items;
+        notifyDataSetChanged();
     }
 
     @Override

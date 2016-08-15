@@ -1,5 +1,7 @@
 package com.dalexiv.rssreader.presentation.presenters;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -7,9 +9,11 @@ import com.dalexiv.rssreader.domain.RssViewItem;
 import com.dalexiv.rssreader.domain.interactors.GetChannelsByUrlsUseCase;
 import com.dalexiv.rssreader.domain.parsers.ChannelParser;
 import com.dalexiv.rssreader.presentation.di.DaggerParserComponent;
+import com.dalexiv.rssreader.presentation.ui.fragments.DialogNewRssLink;
 import com.dalexiv.rssreader.presentation.ui.fragments.FragmentRssList;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -21,12 +25,15 @@ import rx.android.schedulers.AndroidSchedulers;
  */
 
 public class PresenterRssList extends Presenter<FragmentRssList> {
+    private static final int REQUEST_LINK = 1;
     private final String TAG = PresenterRssList.class.getSimpleName();
     @Inject
     ChannelParser parser;
 
-    private String testLink1 = "http://rss.cnn.com/rss/edition.rss";
-    private String testLink2 = "http://feeds.bbci.co.uk/news/rss.xml";
+    private List<String> rssLinks = new ArrayList<String>() {{
+        add("http://rss.cnn.com/rss/edition.rss");
+        add("http://feeds.bbci.co.uk/news/rss.xml");
+    }};
 
     public PresenterRssList() {
         DaggerParserComponent.builder().build().inject(this);
@@ -35,10 +42,14 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
     @Override
     public void bindView(@NonNull FragmentRssList view) {
         super.bindView(view);
+        fetchChannels();
+    }
+
+    private void fetchChannels() {
         view().setRefreshing(true);
         new GetChannelsByUrlsUseCase(parser,
                 AndroidSchedulers.mainThread(),
-                Arrays.asList(testLink1, testLink2))
+                rssLinks)
                 .getObservable()
                 .flatMap(channel -> Observable.zip(
                         Observable.from(channel.getItems()),
@@ -52,6 +63,25 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
                             view().setRefreshing(false);
                             view().displayItems(rssViewItems);
                         },
-                        error -> Log.e(TAG, "loading rss::", error));
+                        error -> {
+                            Log.e(TAG, "loading rss::", error);
+                            view().notifyUser("Bad connection, retry later");
+                        });
+    }
+
+    public void handleFabClick() {
+        DialogNewRssLink dialog = DialogNewRssLink.newInstance();
+        dialog.setTargetFragment(view(), REQUEST_LINK);
+        dialog.show(view().getFragmentManager(), dialog.getClass().getSimpleName());
+    }
+
+    public void onFragmentResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_LINK:
+                    rssLinks.add(data.getStringExtra(DialogNewRssLink.TAG_LINK_ENTERED));
+                    fetchChannels();
+            }
+        }
     }
 }

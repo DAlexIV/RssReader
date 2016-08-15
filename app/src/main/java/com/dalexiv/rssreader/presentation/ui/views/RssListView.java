@@ -13,5 +13,4 @@ public interface RssListView {
     void setRefreshing(boolean isRefreshing);
     void notifyUser(String message);
     void displayItems(List<RssViewItem> items);
-    void addItemsToDisplayed(List<RssViewItem> items);
 }

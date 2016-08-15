@@ -1,5 +1,6 @@
 package com.dalexiv.rssreader.presentation.ui.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.CoordinatorLayout;
@@ -31,10 +32,14 @@ import butterknife.BindView;
  */
 
 public class FragmentRssList extends BaseFragment implements RssListView {
-    @BindView(R.id.rssRecycler) RecyclerView recyclerView;
-    @BindView(R.id.coordinator) CoordinatorLayout coordinatorLayout;
-    @BindView(R.id.progressBar) ProgressBar progressBar;
+    @BindView(R.id.rssRecycler)
+    RecyclerView recyclerView;
+    @BindView(R.id.coordinator)
+    CoordinatorLayout coordinatorLayout;
+    @BindView(R.id.progressBar)
+    ProgressBar progressBar;
     RssListAdapter adapter;
+
 
     @Inject
     PresenterRssList presenterRssList;
@@ -61,8 +66,7 @@ public class FragmentRssList extends BaseFragment implements RssListView {
 
     private void initFab(View view) {
         FloatingActionButton fab = (FloatingActionButton) view.findViewById(R.id.fab);
-        fab.setOnClickListener(view1 -> Snackbar.make(view1, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show());
+        fab.setOnClickListener(view1 -> presenterRssList.handleFabClick());
     }
 
     private void setupRecycler() {
@@ -77,8 +81,7 @@ public class FragmentRssList extends BaseFragment implements RssListView {
         if (isRefreshing) {
             progressBar.setVisibility(View.VISIBLE);
             recyclerView.setVisibility(View.GONE);
-        }
-        else {
+        } else {
             progressBar.setVisibility(View.GONE);
             recyclerView.setVisibility(View.VISIBLE);
         }
@@ -95,13 +98,14 @@ public class FragmentRssList extends BaseFragment implements RssListView {
     }
 
     @Override
-    public void addItemsToDisplayed(List<RssViewItem> items) {
-
-    }
-
-    @Override
     public void onDestroyView() {
         super.onDestroyView();
         presenterRssList.unbindView(this);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        presenterRssList.onFragmentResult(requestCode, resultCode, data);
     }
 }
