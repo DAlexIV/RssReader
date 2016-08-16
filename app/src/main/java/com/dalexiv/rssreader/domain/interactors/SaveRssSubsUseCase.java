@@ -17,12 +17,11 @@ import static com.bumptech.glide.gifdecoder.GifHeaderParser.TAG;
  */
 
 public class SaveRssSubsUseCase extends UseCase<List<String>> {
-    static final String SET = "SET";
+    static final String SET = "URL_SET";
     private Context context;
     private List<String> list;
 
     public SaveRssSubsUseCase(Context context, List<String> list) {
-        super(AndroidSchedulers.mainThread(), AndroidSchedulers.mainThread());
         this.context = context.getApplicationContext();
         this.list = list;
     }
@@ -34,7 +33,8 @@ public class SaveRssSubsUseCase extends UseCase<List<String>> {
         PreferenceManager
                 .getDefaultSharedPreferences(context)
                 .edit()
-                .putStringSet(TAG, set)
+                .putStringSet(SET, new TreeSet<>(set))
+                .putString("test", "test")
                 .apply();
         return Observable.empty();
     }

@@ -19,16 +19,18 @@ import static com.dalexiv.rssreader.domain.interactors.SaveRssSubsUseCase.SET;
 
 public class GetRssSubsUseCase extends UseCase<List<String>> {
     private Context context;
+    private Set<String> defaultUrls;
 
     public GetRssSubsUseCase(Context context) {
-        super(AndroidSchedulers.mainThread(), AndroidSchedulers.mainThread());
+        this.defaultUrls = new TreeSet<>();
+        defaultUrls.add("http://rss.cnn.com/rss/edition.rss");
         this.context = context.getApplicationContext();
     }
 
     @Override
     protected Observable<List<String>> buildUseCaseObservable() {
-        Set<String> set = new TreeSet<>();
-        PreferenceManager.getDefaultSharedPreferences(context).getStringSet(SET, set);
+        Set<String> set = PreferenceManager.getDefaultSharedPreferences(context)
+                .getStringSet(SET, defaultUrls);
         List<String> list = new ArrayList<>();
         list.addAll(set);
         return Observable.fromCallable(() -> list);
