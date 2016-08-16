@@ -17,7 +17,6 @@ import com.dalexiv.rssreader.presentation.ui.activities.ActivityDetailedRssItem;
 import com.dalexiv.rssreader.presentation.ui.fragments.DialogNewRssLink;
 import com.dalexiv.rssreader.presentation.ui.fragments.FragmentRssList;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -35,12 +34,8 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
     @Inject
     ChannelParser parser;
 
-    private List<String> defaultRssLinks = new ArrayList<String>() {{
-        add("http://rss.cnn.com/rss/edition.rss");
-    }};
-
     private List<String> rssLinks;
-    private List<RssViewItem> cachedItems;
+    private List<RssViewItem> currentViewItems;
 
     public PresenterRssList() {
         DaggerParserComponent.builder().build().inject(this);
@@ -49,27 +44,23 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
     @Override
     public void bindView(@NonNull FragmentRssList view) {
         super.bindView(view);
-        if (cachedItems == null)
+        if (currentViewItems == null)
             fetchChannels();
         else
-            view().displayItems(cachedItems);
+            view().displayItems(currentViewItems);
     }
 
     private void fetchChannels() {
         view().setRefreshing(true);
 
-        // Try to load them from prefs
+        // Load them from prefs
         if (rssLinks == null || rssLinks.isEmpty()) {
             new GetRssSubsUseCase(view().getActivity())
                     .getObservable()
-                    .filter(list -> list != null)
-                    .subscribe(list ->
-                            rssLinks = list);
+                    .doOnNext(list -> rssLinks = list)
+                    .toBlocking()
+                    .first();
         }
-
-        // If we haven't loaded something, then set them to default
-        if (rssLinks == null)
-            rssLinks = defaultRssLinks;
 
         new GetChannelsByUrlsUseCase(parser,
                 AndroidSchedulers.mainThread(),
@@ -79,19 +70,22 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
                 .subscribe(rssViewItems -> {
                             view().setRefreshing(false);
                             view().displayItems(rssViewItems);
-                            cachedItems = rssViewItems;
-                            new SaveRssSubsUseCase(view().getActivity(), rssLinks)
-                                    .getObservable()
-                                    .subscribe();
+                            currentViewItems = rssViewItems;
                         },
                         error -> {
-                            Log.e(TAG, "loading rss::", error);
+                            Log.e(TAG, "loading all rss::", error);
                             view().notifyUser("Bad connection, retry later");
                         });
     }
 
     private void fetchChannel(String url) {
         view().setRefreshing(true);
+
+        if (rssLinks.contains(url)) {
+            view().setRefreshing(false);
+            view().notifyUser("You have already subscribed to " + url);
+            return;
+        }
 
         new GetChannelByUrlUseCase(parser, AndroidSchedulers.mainThread(), url)
                 .getObservable()
@@ -100,9 +94,17 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
                     view().setRefreshing(false);
 
                     rssLinks.add(url);
+                    updateCurrentItems(rssViewItems);
+                    view().displayItems(currentViewItems);
                     new SaveRssSubsUseCase(view().getActivity(), rssLinks)
                             .getObservable()
-                            .subscribe();
+                            .toBlocking();
+                }, error -> {
+                    view().setRefreshing(false);
+                    view().displayItems(currentViewItems);
+
+                    Log.e(TAG, "loading rss::", error);
+                    view().notifyUser("This rss feed is currently not supported, try another one");
                 });
     }
 
@@ -137,5 +139,18 @@ public class PresenterRssList extends Presenter<FragmentRssList> {
                 .toList();
     }
 
+    private void updateCurrentItems(List<RssViewItem> viewItems) {
+        Observable.merge(Observable.from(currentViewItems),
+                Observable.from(viewItems))
+                .sorted((rssViewItem1, rssViewItem2) ->
+                        rssViewItem1.rssItem().getTimestamp()
+                                < rssViewItem2.rssItem().getTimestamp() ? 1 : -1)
+                .toList()
+                .subscribe(list -> currentViewItems = list);
+    }
 
+    @Override
+    public void unbindView(@NonNull FragmentRssList view) {
+        super.unbindView(view);
+    }
 }
